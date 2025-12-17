@@ -9,7 +9,7 @@ const userSchema = new Schema(
             required: true,
             unique: true,
             lowercase: true,
-            trim: trim,
+            trim: true,
             index: true
         },
         email: {
@@ -17,12 +17,12 @@ const userSchema = new Schema(
             required: true,
             unique: true,
             lowercase: true,
-            trim: trim,
+            trim: true,
         },
         fullname: {
             type: String,
             required: true,
-            trim: trim,
+            trim: true,
             index: true
         },
         avatar: {
