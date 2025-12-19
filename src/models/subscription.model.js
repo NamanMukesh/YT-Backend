@@ -11,7 +11,7 @@ const subscriptionSchema = new Schema({
     }
     },
     {
-        timestamp: true
+        timestamps: true
     }
 )
 
