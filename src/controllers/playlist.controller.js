@@ -3,7 +3,7 @@ import {Playlist} from "../models/playlist.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { verify } from "jsonwebtoken"
+import { Video } from "../models/video.model.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -16,7 +16,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     const playlist = await Playlist.create(
         {
-            name: name.ttrim(),
+            name: name.trim(),
             description: description.trim(),
             owner: req.user._id,
         }
@@ -36,12 +36,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     }
 
     const playlist = await Playlist.find({owner: userId})
-
-    if (playlist.length === 0) {
-        return res
-        .status(200)
-        .json(new ApiResponse(200, [], "No playlist found for this user"))
-    }
 
     return res
     .status(200)
@@ -68,24 +62,142 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
-    
+    if(!isValidObjectId(playlistId) || !isValidObjectId(videoId)){
+        throw new ApiError(400, "Invalid PlaylistId or VideoId")
+    }
+
+    const video = await Video.exists({_id: videoId})
+
+    if (!video) {
+        throw new ApiError(404, "Video does not exists")
+    }
+
+    const playlist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        },
+        {
+            $addToSet: {
+                video: videoId
+            }
+        },
+        {
+            new: true,
+            runValidators: true
+        }
+    )
+
+    if(!playlist){
+        throw new ApiError(404, "Playlist does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "Video Added to playlist"))
 })
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
     // TODO: remove video from playlist
 
+    if(!isValidObjectId(playlistId) || !isValidObjectId(videoId)){
+        throw new ApiError(400, "Invalid PlaylistId or VideoId")
+    }
+
+    const video = await Video.exists({_id: videoId})
+
+    if (!video) {
+        throw new ApiError(404, "Video does not Exists")
+    }
+
+    const playlist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        },
+        {
+            $pull: {
+                video: videoId
+            }
+        },
+        {
+            new: true,
+            runValidators: true
+        }
+    )
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "Video removed from playlist"))
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     // TODO: delete playlist
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400, "Invalid PlaylistId")
+    }
+
+    const playlist = await Playlist.findOneAndDelete(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        }
+    )
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "Playlist Deleted"))
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     const {name, description} = req.body
     //TODO: update playlist
+
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid PlaylistId")
+    }
+
+    if (!name?.trim() || !description?.trim()) {
+        throw new ApiError(400, "Name or Description can't be empty")
+    }
+
+    const playlist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+
+        },
+        {
+            $set: {
+                name: name.trim(),
+                description: description.trim()
+            }
+        },
+        {
+            new: true,
+            runValidators: true
+        }
+    )
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, playlist, "Playlist Updated"))
 })
 
 export {
