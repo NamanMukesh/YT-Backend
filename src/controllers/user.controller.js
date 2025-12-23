@@ -282,7 +282,7 @@ const updateAvatar = asyncHandler(async ( req, res) => {
         req.user?._id,
         {
             $set: {
-            avatar: avatar.url
+                avatar: avatar.url
             }
         },
         {
@@ -441,7 +441,8 @@ const getWatchHistory = asyncHandler( async (req, res) => {
     .json(200, user[0].watchHistory, "Watch history fetched successfully")
 })
 
-export { registerUser, 
+export { 
+    registerUser, 
     loginUser, 
     logoutUser, 
     refreshAccessToken, 
